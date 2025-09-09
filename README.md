@@ -19,6 +19,7 @@ It features multiple levels of difficulty, a timer, progress tracking, sound eff
 
 ## 🚀 Demo
 
+https://quizzy-app-fawn.vercel.app/
 You can run it locally or deploy on GitHub Pages / Netlify / Vercel.  
 Just open the `index.html` file in your browser.
 
@@ -27,8 +28,9 @@ Just open the `index.html` file in your browser.
 ## 📂 Project Structure
 
 quizzy/
-│
+
 ├── index.html # Main app (HTML, CSS, JS in one file)
+
 └── README.md # Project documentation
 
 ---
