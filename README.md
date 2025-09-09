@@ -20,7 +20,9 @@ It features multiple levels of difficulty, a timer, progress tracking, sound eff
 ## 🚀 Demo
 
 https://quizzy-app-fawn.vercel.app/
+
 You can run it locally or deploy on GitHub Pages / Netlify / Vercel.  
+
 Just open the `index.html` file in your browser.
 
 ---
@@ -47,10 +49,13 @@ That’s it! 🎉
 🔧 Customization
 
 Add your own questions:
+
 Edit the QUESTIONS object inside index.html.
+
 Example:
 
 beginner: [
+
   {q:"Your question?", a:["Opt1","Opt2","Opt3","Opt4"], correct:1}
 ]
 
