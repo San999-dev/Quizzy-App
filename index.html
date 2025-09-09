@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quizzy — Full Version</title>
+<style>
+  :root{
+    --bg1:#071826; --bg2:#0b3450; --accent:#6be6b8; --accent2:#59c2ff;
+    --card:#081826; --muted:#b6d6e7; --correct:#28a745; --wrong:#e74c3c;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:#e9fbf7}
+  .wrap{max-width:760px;margin:28px auto;padding:20px}
+  .app{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:22px;border-radius:14px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 10px 40px rgba(2,12,20,0.6)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+  h1{font-size:20px;margin:0}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  button.btn{background:linear-gradient(90deg,var(--accent),var(--accent2));border:0;padding:10px 14px;border-radius:10px;font-weight:700;color:#032026;cursor:pointer;box-shadow:0 10px 30px rgba(3,32,51,0.25);transition:transform .2s}
+  button.btn:hover{transform:translateY(-3px)}
+  button.btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+  .level-row{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}
+  .progress-wrap{height:12px;background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;margin:10px 0}
+  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .45s ease}
+  .question{font-size:18px;margin:12px 0;min-height:50px}
+  .answers{display:flex;flex-direction:column;gap:8px}
+  .ans-btn{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:10px;color:var(--muted);cursor:pointer;text-align:left;transition:all .25s}
+  .ans-btn:hover{box-shadow:0 10px 30px rgba(2,12,20,0.6);transform:translateY(-4px);color:var(--accent)}
+  .ans-btn.correct{background:var(--correct)!important;color:#fff;border:none}
+  .ans-btn.wrong{background:var(--wrong)!important;color:#fff;border:none}
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .timer{color:#ffd36a;font-weight:700}
+  .score{color:var(--muted)}
+  canvas#confetti{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:9999}
+  @media(max-width:640px){ .question{font-size:16px} .btn{padding:8px 10px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="app" role="application" aria-label="Quizzy">
+    <header>
+      <div>
+        <h1>Quizzy 🎯</h1>
+        <div style="font-size:13px;color:var(--muted)">10 questions / level · timer · progress</div>
+      </div>
+      <div class="controls">
+        <button id="enableSound" class="btn ghost">🔊 Enable Sound</button>
+        <button id="resetBtn" class="btn ghost">↺ Reset</button>
+      </div>
+    </header>
+
+    <div>
+      <div class="level-row">
+        <button class="btn" data-level="beginner">Start Beginner</button>
+        <button class="btn" data-level="intermediate">Start Intermediate</button>
+        <button class="btn" data-level="hard">Start Hard</button>
+      </div>
+
+      <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+      <div class="question" id="question">Pick a level to begin the quiz.</div>
+      <div class="answers" id="answers"></div>
+      <div class="meta">
+        <div class="timer" id="timer">Timer: -</div>
+        <div class="score" id="score">Score: 0 / 0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+/* ===== QUESTIONS ===== */
+const QUESTIONS = {
+  beginner: [
+    {q:"What is 2 + 2?", a:["3","4","5","6"], correct:1},
+    {q:"Which color is the sky?", a:["Green","Blue","Red","Pink"], correct:1},
+    {q:"What is 5 - 3?", a:["1","2","3","4"], correct:1},
+    {q:"Which of these is a fruit?", a:["Carrot","Potato","Apple","Onion"], correct:2},
+    {q:"How many days are in a week?", a:["5","6","7","8"], correct:2},
+    {q:"Which animal says 'meow'?", a:["Dog","Cat","Cow","Sheep"], correct:1},
+    {q:"What comes after 9?", a:["8","10","11","7"], correct:1},
+    {q:"Opposite of 'Hot'?", a:["Warm","Cool","Cold","Fire"], correct:2},
+    {q:"Which shape has 4 sides?", a:["Triangle","Square","Circle","Star"], correct:1},
+    {q:"Which is a color?", a:["Apple","Banana","Blue","Cat"], correct:2}
+  ],
+  intermediate: [
+    {q:"Capital of France?", a:["Berlin","Madrid","Paris","Rome"], correct:2},
+    {q:"Which is a mammal?", a:["Shark","Whale","Octopus","Crab"], correct:1},
+    {q:"12 ÷ 4 = ?", a:["2","3","4","5"], correct:1},
+    {q:"Red Planet is?", a:["Venus","Earth","Mars","Saturn"], correct:2},
+    {q:"Largest ocean?", a:["Atlantic","Pacific","Indian","Arctic"], correct:1},
+    {q:"Who wrote Romeo & Juliet?", a:["Dickens","Shakespeare","Homer","Tolstoy"], correct:1},
+    {q:"Plants need which gas?", a:["Oxygen","Carbon Dioxide","Nitrogen","Hydrogen"], correct:1},
+    {q:"Which is prime?", a:["6","9","11","15"], correct:2},
+    {q:"Freezing point of water?", a:["0°C","32°C","100°C","50°C"], correct:0},
+    {q:"Which is a programming language?", a:["Snake","Python","Lion","Tiger"], correct:1}
+  ],
+  hard: [
+    {q:"Who developed relativity?", a:["Newton","Einstein","Tesla","Edison"], correct:1},
+    {q:"Element symbol 'O'?", a:["Osmium","Oxygen","Gold","Silver"], correct:1},
+    {q:"15 × 3 = ?", a:["30","35","45","50"], correct:2},
+    {q:"Capital of Japan?", a:["Beijing","Seoul","Tokyo","Kyoto"], correct:2},
+    {q:"Largest organ in human body?", a:["Heart","Skin","Liver","Brain"], correct:1},
+    {q:"World War II ended in?", a:["1942","1945","1950","1939"], correct:1},
+    {q:"√144 = ?", a:["10","11","12","13"], correct:2},
+    {q:"H2O is?", a:["Water","Oxygen","Hydrogen","Salt"], correct:0},
+    {q:"NOT a programming language?", a:["Java","C++","Ruby","Lotus"], correct:3},
+    {q:"Fastest land animal?", a:["Lion","Horse","Cheetah","Tiger"], correct:2}
+  ]
+};
+
+/* ===== STATE ===== */
+const qEl = document.getElementById('question');
+const answersEl = document.getElementById('answers');
+const timerEl = document.getElementById('timer');
+const scoreEl = document.getElementById('score');
+const progressBar = document.getElementById('progressBar');
+const enableSoundBtn = document.getElementById('enableSound');
+const resetBtn = document.getElementById('resetBtn');
+const canvas = document.getElementById('confetti');
+
+let currentList = [], index = 0, score = 0, timeLeft = 15, timerId = null;
+let audioCtx=null,audioReady=false;
+
+/* ===== AUDIO ===== */
+function initAudio(){
+  if(audioReady) return;
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const buffer = audioCtx.createBuffer(1,1,22050);
+    const src = audioCtx.createBufferSource(); src.buffer = buffer; src.connect(audioCtx.destination); src.start(0);
+    audioCtx.resume();
+    audioReady=true;
+    enableSoundBtn.textContent='🔊 Sound: ON';
+    enableSoundBtn.classList.remove('ghost');
+  }catch(e){console.warn('Audio init failed',e);}
+}
+enableSoundBtn.addEventListener('click',()=>initAudio());
+function playTone(freq,type,duration,gain){
+  if(!audioReady||!audioCtx)return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type; o.frequency.value=freq; g.gain.value=gain;
+  o.connect(g); g.connect(audioCtx.destination);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration);
+  o.start(); o.stop(audioCtx.currentTime+duration+0.05);
+}
+function playCorrect(){playTone(880,'sine',0.1,0.1);}
+function playWrong(){playTone(200,'square',0.2,0.15);}
+function playTick(){playTone(700,'sine',0.05,0.05);}
+function playCelebrate(){[880,1046,1318].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.12,0.08),i*150));}
+
+/* ===== CONFETTI ===== */
+function fireConfetti(){
+  const ctx=canvas.getContext('2d'); canvas.width=innerWidth; canvas.height=innerHeight;
+  const pieces=Array.from({length:120},()=>({x:innerWidth/2,y:innerHeight/2,vx:(Math.random()-0.5)*8,vy:(Math.random()-1)*8,r:6+Math.random()*4,c:`hsl(${Math.random()*360},70%,60%)`}));
+  function frame(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,p.r,p.r);});
+    if(pieces.some(p=>p.y<innerHeight))requestAnimationFrame(frame);
+  }
+  frame(); setTimeout(()=>ctx.clearRect(0,0,canvas.width,canvas.height),3000);
+}
+
+/* ===== QUIZ LOGIC ===== */
+function start(level){
+  initAudio(); currentList=[...QUESTIONS[level]]; index=0; score=0; updateUI(); nextQuestion();
+}
+function updateUI(){
+  scoreEl.textContent=`Score: ${score} / ${currentList.length}`;
+  progressBar.style.width=`${(index/currentList.length)*100}%`;
+}
+function nextQuestion(){
+  clearInterval(timerId);
+  if(index>=currentList.length){
+    qEl.textContent="🎉 Quiz completed!"; answersEl.innerHTML=""; timerEl.textContent="Done"; playCelebrate(); fireConfetti(); return;
+  }
+  const q=currentList[index]; qEl.textContent=`${index+1}. ${q.q}`; answersEl.innerHTML="";
+  q.a.forEach((opt,i)=>{const b=document.createElement('button');b.className='ans-btn';b.textContent=opt;b.onclick=()=>answerSelected(i,b);answersEl.appendChild(b);});
+  timeLeft=15; timerEl.textContent=`Timer: ${timeLeft}s`; timerId=setInterval(()=>{timeLeft--;timerEl.textContent=`Timer: ${timeLeft}s`; if(audioReady)playTick(); if(timeLeft<=0){clearInterval(timerId);index++;updateUI();nextQuestion();}},1000);
+  updateUI();
+}
+function answerSelected(choice,btn){
+  clearInterval(timerId);
+  const q=currentList[index]; [...answersEl.children].forEach((b,i)=>{if(i===q.correct)b.classList.add('correct');if(i===choice&&i!==q.correct)b.classList.add('wrong');});
+  if(choice===q.correct){score++; if(audioReady)playCorrect();} else if(audioReady)playWrong();
+  index++; updateUI(); setTimeout(nextQuestion,800);
+}
+
+/* ===== EVENTS ===== */
+document.querySelectorAll('button[data-level]').forEach(b=>b.addEventListener('click',()=>start(b.dataset.level)));
+resetBtn.addEventListener('click',()=>{clearInterval(timerId);index=0;score=0;qEl.textContent='Pick a level to begin the quiz.';answersEl.innerHTML='';timerEl.textContent='Timer: -';progressBar.style.width='0%';scoreEl.textContent='Score: 0 / 0';});
+</script>
+</body>
+</html>
